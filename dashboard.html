@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – HomeCare Checklist{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Technician Dashboard</h1>
+  <div>
+    <a href="{{ url_for('admin_customers') }}" class="btn btn-outline-primary btn-sm me-1">
+      <i class="bi bi-people"></i> Customers
+    </a>
+    <a href="{{ url_for('admin_houses') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-house-add"></i> Manage Houses
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card text-center p-3">
+      <div class="display-6 text-primary">{{ customers|length }}</div>
+      <div class="text-muted">Customers</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center p-3">
+      <div class="display-6 text-primary">{{ houses|length }}</div>
+      <div class="text-muted">Houses</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card text-center p-3">
+      <div class="display-6 text-primary">
+        {{ houses|map(attribute='checklist_items')|map('count')|sum }}
+      </div>
+      <div class="text-muted">Checklist Items</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5 mb-3">All Houses</h2>
+{% if houses %}
+  <div class="table-responsive">
+    <table class="table table-hover bg-white rounded">
+      <thead>
+        <tr>
+          <th>House</th>
+          <th>Customer</th>
+          <th>Address</th>
+          <th>Items</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for house in houses %}
+          <tr>
+            <td><strong>{{ house.name }}</strong></td>
+            <td>{{ house.owner.name }}</td>
+            <td class="small text-muted">{{ house.address }}</td>
+            <td>{{ house.checklist_items.count() }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('house_detail', house_id=house.id) }}" class="btn btn-sm btn-outline-secondary">View</a>
+              <a href="{{ url_for('admin_items', house_id=house.id) }}" class="btn btn-sm btn-outline-primary">Edit items</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">No houses yet. Create a customer first, then add a house.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Checklist – {{ house.name }}{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('admin_houses') }}">Houses</a></li>
+    <li class="breadcrumb-item active">{{ house.name }}</li>
+  </ol>
+</nav>
+
+<h1 class="h3 mb-1">Checklist for {{ house.name }}</h1>
+<p class="text-muted mb-4">{{ house.address }} · Owner: {{ house.owner.name }}</p>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header bg-white"><strong>Add Checklist Item</strong></div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="row mb-3">
+            <div class="col">
+              <label class="form-label">Category</label>
+              <input type="text" name="category" class="form-control" list="categories" value="General">
+              <datalist id="categories">
+                <option value="HVAC">
+                <option value="Plumbing">
+                <option value="Electrical">
+                <option value="Exterior">
+                <option value="Safety">
+                <option value="Appliances">
+                <option value="Seasonal">
+                <option value="General">
+              </datalist>
+            </div>
+            <div class="col">
+              <label class="form-label">Priority</label>
+              <select name="priority" class="form-select">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Due date</label>
+            <input type="date" name="due_date" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes / message for this item</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Item</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between">
+        <strong>Current Items ({{ items|length }})</strong>
+        <a href="{{ url_for('house_detail', house_id=house.id) }}" class="btn btn-sm btn-outline-secondary">Customer view</a>
+      </div>
+      <div class="card-body p-0">
+        {% if items %}
+          <ul class="list-group list-group-flush">
+            {% for item in items %}
+              <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <span class="badge bg-secondary ms-1">{{ item.category }}</span>
+                    <span class="badge 
+                      {% if item.status == 'completed' %}bg-success
+                      {% elif item.status == 'overdue' %}bg-danger
+                      {% else %}bg-warning text-dark{% endif %}">
+                      {{ item.status.replace('_', ' ') }}
+                    </span>
+                    {% if item.due_date %}
+                      <div class="small text-muted">Due {{ item.due_date.strftime('%Y-%m-%d') }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <a href="{{ url_for('admin_edit_item', item_id=item.id) }}" class="btn btn-outline-primary">Edit</a>
+                    <form method="post" action="{{ url_for('admin_delete_item', item_id=item.id) }}"
+                          onsubmit="return confirm('Delete this item?');">
+                      <button type="submit" class="btn btn-outline-danger">Delete</button>
+                    </form>
+                  </div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="p-3 text-muted mb-0">No items yet. Add the first one on the left.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

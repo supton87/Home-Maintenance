@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}{{ house.name }} – HomeCare Checklist{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+    <li class="breadcrumb-item active">{{ house.name }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+  <div>
+    <h1 class="h3 mb-1">{{ house.name }}</h1>
+    <p class="text-muted mb-0">
+      <i class="bi bi-geo-alt"></i> {{ house.address }}
+      {% if current_user.is_admin %}
+        &nbsp;·&nbsp; Owner: <strong>{{ house.owner.name }}</strong>
+      {% endif %}
+    </p>
+    {% if house.notes %}
+      <p class="small text-muted mt-1">{{ house.notes }}</p>
+    {% endif %}
+  </div>
+  {% if current_user.is_admin %}
+    <a href="{{ url_for('admin_items', house_id=house.id) }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg"></i> Manage Checklist
+    </a>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <!-- Checklist column -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Maintenance Checklist</strong>
+      </div>
+      <div class="card-body p-0">
+        {% if categories %}
+          {% for category, items in categories.items() %}
+            <div class="px-3 pt-3">
+              <h6 class="text-uppercase text-muted small mb-2">{{ category }}</h6>
+            </div>
+            <ul class="list-group list-group-flush mb-2">
+              {% for item in items %}
+                <li class="list-group-item status-{{ item.status }} priority-{{ item.priority }}">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <strong>{{ item.title }}</strong>
+                        <span class="badge rounded-pill 
+                          {% if item.status == 'completed' %}bg-success
+                          {% elif item.status == 'overdue' %}bg-danger
+                          {% elif item.status == 'in_progress' %}bg-primary
+                          {% else %}bg-warning text-dark{% endif %}">
+                          {{ item.status.replace('_', ' ') }}
+                        </span>
+                        {% if item.priority == 'high' %}
+                          <span class="badge bg-danger-subtle text-danger">High</span>
+                        {% endif %}
+                      </div>
+                      {% if item.description %}
+                        <p class="small mb-1 text-muted">{{ item.description }}</p>
+                      {% endif %}
+                      {% if item.due_date %}
+                        <span class="small text-muted">
+                          <i class="bi bi-calendar"></i> Due {{ item.due_date.strftime('%b %d, %Y') }}
+                        </span>
+                      {% endif %}
+                      {% if item.notes %}
+                        <div class="small mt-1 p-2 bg-light rounded">
+                          <i class="bi bi-chat-left-text"></i> {{ item.notes }}
+                        </div>
+                      {% endif %}
+
+                      <!-- Photos for this item -->
+                      {% set item_photos = item.photos.all() %}
+                      {% if item_photos %}
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                          {% for photo in item_photos %}
+                            <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank">
+                              <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}"
+                                   class="photo-thumb" alt="{{ photo.caption or 'Photo' }}">
+                            </a>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <!-- Status form (customers + admin can update) -->
+                    <form method="post" action="{{ url_for('update_item_status', house_id=house.id, item_id=item.id) }}" class="flex-shrink-0">
+                      <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
+                        <option value="pending" {% if item.status == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="in_progress" {% if item.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if item.status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="overdue" {% if item.status == 'overdue' %}selected{% endif %}>Overdue</option>
+                      </select>
+                    </form>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endfor %}
+        {% else %}
+          <div class="p-4 text-center text-muted">
+            No checklist items yet.
+            {% if current_user.is_admin %}
+              <a href="{{ url_for('admin_items', house_id=house.id) }}">Add the first one</a>.
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar: Messages + Gallery + Upload -->
+  <div class="col-lg-4">
+    <!-- Message board -->
+    <div class="card mb-3">
+      <div class="card-header bg-white">
+        <strong><i class="bi bi-chat-dots"></i> Messages</strong>
+      </div>
+      <div class="card-body" style="max-height: 320px; overflow-y: auto;">
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="message-bubble">
+              <div class="message-meta mb-1">
+                <strong>{{ msg.author.name }}</strong>
+                · {{ msg.created_at.strftime('%b %d, %Y %H:%M') }}
+              </div>
+              <div>{{ msg.body }}</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted small mb-0">No messages yet.</p>
+        {% endif %}
+      </div>
+      <div class="card-footer bg-white">
+        <form method="post" action="{{ url_for('post_message', house_id=house.id) }}">
+          <div class="input-group">
+            <input type="text" name="body" class="form-control form-control-sm" placeholder="Write a message…" required>
+            <button class="btn btn-primary btn-sm" type="submit">Send</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Photo gallery (house-level) -->
+    <div class="card mb-3">
+      <div class="card-header bg-white">
+        <strong><i class="bi bi-images"></i> Photo Gallery</strong>
+      </div>
+      <div class="card-body">
+        {% if gallery_photos %}
+          <div class="d-flex flex-wrap gap-2">
+            {% for photo in gallery_photos %}
+              <a href="{{ url_for('static', filename='uploads/' + photo.filename) }}" target="_blank" title="{{ photo.caption or '' }}">
+                <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}"
+                     class="photo-thumb" alt="{{ photo.caption or 'Photo' }}">
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0">No gallery photos yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Upload (admin only) -->
+    {% if current_user.is_admin %}
+      <div class="card">
+        <div class="card-header bg-white">
+          <strong><i class="bi bi-cloud-upload"></i> Upload Photo</strong>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('upload_photo', house_id=house.id) }}" enctype="multipart/form-data">
+            <div class="mb-2">
+              <input type="file" name="photo" class="form-control form-control-sm" accept="image/*" required>
+            </div>
+            <div class="mb-2">
+              <input type="text" name="caption" class="form-control form-control-sm" placeholder="Caption (optional)">
+            </div>
+            <div class="mb-2">
+              <select name="checklist_item_id" class="form-select form-select-sm">
+                <option value="">House gallery (not tied to an item)</option>
+                {% for cat, items in categories.items() %}
+                  {% for item in items %}
+                    <option value="{{ item.id }}">{{ item.title }}</option>
+                  {% endfor %}
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="btn btn-success btn-sm w-100">Upload</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
